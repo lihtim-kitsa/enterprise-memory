@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --bg: #f5f3ee;
+    --bg-muted: #ebe6df;
+    --surface: #ffffff;
+    --surface-strong: #f7f4ef;
+    --surface-border: #ded7cd;
+    --text: #1c1b19;
+    --text-muted: #5c5751;
+    --accent: #0f4c5c;
+    --accent-strong: #0b3a47;
+    --accent-soft: #c8e2e4;
+    --warning: #c45d32;
+    --shadow: 0 30px 80px -60px rgba(16, 35, 38, 0.6);
+    --ring: 0 0 0 1px rgba(15, 76, 92, 0.35);
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0b0f12;
+    --bg-muted: #12181d;
+    --surface: #131a20;
+    --surface-strong: #1b242c;
+    --surface-border: #26313a;
+    --text: #f4f1ec;
+    --text-muted: #a9b0b8;
+    --accent: #52b3c2;
+    --accent-strong: #3a94a3;
+    --accent-soft: #1f3b45;
+    --warning: #e09a77;
+    --shadow: 0 30px 80px -60px rgba(0, 0, 0, 0.8);
+    --ring: 0 0 0 1px rgba(82, 179, 194, 0.4);
+  }
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-manrope), "Manrope", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}

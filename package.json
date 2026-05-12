@@ -1,0 +1,29 @@
+{
+  "name": "enterprise-memory",
+  "version": "1.0.0",
+  "description": "EnterpriseMemory monorepo",
+  "private": true,
+  "packageManager": "npm@10.9.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lihtim-kitsa/enterprise-memory.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lihtim-kitsa/enterprise-memory/issues"
+  },
+  "homepage": "https://github.com/lihtim-kitsa/enterprise-memory#readme",
+  "devDependencies": {
+    "turbo": "^2.9.12"
+  }
+}
