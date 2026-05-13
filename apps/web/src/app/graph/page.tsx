@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import mockGraph, { GraphNode, NodeType } from './mockgraph';
+import mockGraph, { GraphData, GraphNode, NodeType } from './mockgraph';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
@@ -12,14 +12,18 @@ const NODE_COLORS: Record<GraphNode['type'], string> = {
   decision: '#f59e0b',
 };
 
-const NODE_RADIUS = 6;
+const TYPE_LABEL: Record<NodeType, string> = {
+  person: 'People',
+  project: 'Projects',
+  decision: 'Decisions',
+};
 
-function paintNode(node: GraphNode, ctx: CanvasRenderingContext2D, color: string) {
+function paintNode(node: GraphNode, ctx: CanvasRenderingContext2D, color: string, radius: number) {
   const x = (node as any).x as number;
   const y = (node as any).y as number;
 
   ctx.beginPath();
-  ctx.arc(x, y, NODE_RADIUS, 0, 2 * Math.PI);
+  ctx.arc(x, y, radius, 0, 2 * Math.PI);
   ctx.fillStyle = color;
   ctx.fill();
 
@@ -27,7 +31,7 @@ function paintNode(node: GraphNode, ctx: CanvasRenderingContext2D, color: string
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.fillStyle = '#e5e7eb';
-  ctx.fillText(node.name, x, y + NODE_RADIUS + 3);
+  ctx.fillText(node.name, x, y + radius + 3);
 }
 
 function linkEndId(end: unknown): string {
@@ -36,32 +40,59 @@ function linkEndId(end: unknown): string {
     : (end as string);
 }
 
-const NODE_INDEX = new Map(mockGraph.nodes.map((n) => [n.id, n]));
-
-const TYPE_LABEL: Record<NodeType, string> = {
-  person: 'People',
-  project: 'Projects',
-  decision: 'Decisions',
-};
-
-function getConnectedByType(nodeId: string): Record<NodeType, GraphNode[]> {
+function getConnectedByType(
+  nodeId: string,
+  graph: GraphData,
+  nodeIndex: Map<string, GraphNode>,
+): Record<NodeType, GraphNode[]> {
   const groups: Record<NodeType, GraphNode[]> = { person: [], project: [], decision: [] };
-  for (const l of mockGraph.links) {
+  for (const l of graph.links) {
     const otherId = l.source === nodeId ? l.target : l.target === nodeId ? l.source : null;
     if (!otherId) continue;
-    const other = NODE_INDEX.get(otherId as string);
+    const other = nodeIndex.get(otherId as string);
     if (other) groups[other.type].push(other);
   }
   return groups;
 }
 
 export default function GraphPage() {
+  const [graphData, setGraphData] = useState<GraphData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
-  const connectedByType = useMemo(
-    () => (selectedNode ? getConnectedByType(selectedNode.id) : null),
-    [selectedNode],
+  useEffect(() => {
+    fetch('/api/graph')
+      .then((res) => {
+        if (!res.ok) throw new Error('non-200');
+        return res.json() as Promise<GraphData>;
+      })
+      .then(setGraphData)
+      .catch(() => setGraphData(mockGraph))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const nodeIndex = useMemo(
+    () => new Map((graphData?.nodes ?? []).map((n) => [n.id, n])),
+    [graphData],
   );
+
+  const connectedByType = useMemo(
+    () => (selectedNode && graphData ? getConnectedByType(selectedNode.id, graphData, nodeIndex) : null),
+    [selectedNode, graphData, nodeIndex],
+  );
+
+  const degreeMap = useMemo<Map<string, number>>(() => {
+    const map = new Map<string, number>();
+    for (const l of (graphData?.links ?? [])) {
+      map.set(l.source as string, (map.get(l.source as string) ?? 0) + 1);
+      map.set(l.target as string, (map.get(l.target as string) ?? 0) + 1);
+    }
+    return map;
+  }, [graphData]);
+
+  function nodeRadius(id: string): number {
+    return Math.max(4, (degreeMap.get(id) ?? 0) * 2);
+  }
 
   const connectedIds = useMemo<Set<string>>(() => {
     if (!connectedByType) return new Set();
@@ -85,19 +116,31 @@ export default function GraphPage() {
     return '#1f2937';
   }
 
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#111827' }}>
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-600 border-t-blue-500" />
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#111827' }}>
       <ForceGraph2D
-        graphData={mockGraph}
+        graphData={graphData!}
         width={typeof window !== 'undefined' ? window.innerWidth : 800}
         height={typeof window !== 'undefined' ? window.innerHeight : 600}
-        nodeCanvasObject={(node, ctx) => paintNode(node as GraphNode, ctx, nodeColor(node as GraphNode))}
+        nodeVal={(node) => Math.max(4, (degreeMap.get((node as GraphNode).id) ?? 0) * 2)}
+        nodeCanvasObject={(node, ctx) => {
+          const n = node as GraphNode;
+          paintNode(n, ctx, nodeColor(n), nodeRadius(n.id));
+        }}
         nodeCanvasObjectMode={() => 'replace'}
         nodePointerAreaPaint={(node, color, ctx) => {
           const x = (node as any).x as number;
           const y = (node as any).y as number;
           ctx.beginPath();
-          ctx.arc(x, y, NODE_RADIUS, 0, 2 * Math.PI);
+          ctx.arc(x, y, nodeRadius((node as GraphNode).id), 0, 2 * Math.PI);
           ctx.fillStyle = color;
           ctx.fill();
         }}
@@ -112,7 +155,7 @@ export default function GraphPage() {
           <p className="mt-1 text-sm capitalize text-gray-400">{selectedNode.type}</p>
           <div className="mt-3 border-t border-white/10 pt-3 text-sm">
             <p className="mb-2 text-gray-500">Connected to:</p>
-            {((['person', 'project', 'decision'] as NodeType[]).map((type) => {
+            {(['person', 'project', 'decision'] as NodeType[]).map((type) => {
               const nodes = connectedByType[type].slice(0, 10);
               if (!nodes.length) return null;
               return (
@@ -127,7 +170,7 @@ export default function GraphPage() {
                   </ul>
                 </div>
               );
-            }))}
+            })}
           </div>
         </div>
       )}
