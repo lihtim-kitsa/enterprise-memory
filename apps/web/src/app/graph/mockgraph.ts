@@ -4,6 +4,8 @@ export interface GraphNode {
   id: string;
   type: NodeType;
   name: string;
+  sourceUrl?: string;
+  sourceLabel?: string;
 }
 
 export interface GraphLink {
@@ -21,8 +23,8 @@ export interface GraphData {
 const mockGraph: GraphData = {
   nodes: [
     // People
-    { id: 'p1', type: 'person', name: 'Aisha Rowe' },
-    { id: 'p2', type: 'person', name: 'Marcus Chen' },
+    { id: 'p1', type: 'person', name: 'Aisha Rowe',  sourceUrl: 'https://linear.app/team/profile/aisha',  sourceLabel: 'Linear profile' },
+    { id: 'p2', type: 'person', name: 'Marcus Chen', sourceUrl: 'https://linear.app/team/profile/marcus', sourceLabel: 'Linear profile' },
     { id: 'p3', type: 'person', name: 'Sofia Diaz' },
     { id: 'p4', type: 'person', name: 'James Okafor' },
     { id: 'p5', type: 'person', name: 'Priya Nair' },
@@ -31,13 +33,13 @@ const mockGraph: GraphData = {
     { id: 'p8', type: 'person', name: 'Dev Patel' },
 
     // Projects
-    { id: 'proj1', type: 'project', name: 'Auth Overhaul' },
-    { id: 'proj2', type: 'project', name: 'Data Pipeline v2' },
+    { id: 'proj1', type: 'project', name: 'Auth Overhaul',     sourceUrl: 'https://github.com/acme/auth-overhaul',    sourceLabel: 'GitHub repo' },
+    { id: 'proj2', type: 'project', name: 'Data Pipeline v2', sourceUrl: 'https://github.com/acme/data-pipeline-v2', sourceLabel: 'GitHub repo' },
     { id: 'proj3', type: 'project', name: 'Mobile App' },
     { id: 'proj4', type: 'project', name: 'Customer Dashboard' },
 
     // Decisions
-    { id: 'd1', type: 'decision', name: 'Adopt SSO via OAuth2' },
+    { id: 'd1', type: 'decision', name: 'Adopt SSO via OAuth2', sourceUrl: 'https://www.notion.so/acme/sso-rfc', sourceLabel: 'Notion RFC' },
     { id: 'd2', type: 'decision', name: 'Migrate to Kafka' },
     { id: 'd3', type: 'decision', name: 'Drop React Native for Expo' },
   ],
