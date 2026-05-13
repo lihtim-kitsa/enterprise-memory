@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import type { ForceGraphMethods } from 'react-force-graph-2d';
 import mockGraph, { GraphData, GraphNode, NodeType } from './mockgraph';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
@@ -56,9 +57,11 @@ function getConnectedByType(
 }
 
 export default function GraphPage() {
+  const graphRef = useRef<ForceGraphMethods | undefined>(undefined);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     fetch('/api/graph')
@@ -107,6 +110,19 @@ export default function GraphPage() {
     return '#4b5563';
   }
 
+  function handleSearchKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter' || !graphData) return;
+    const match = graphData.nodes.find((n) =>
+      n.name.toLowerCase().includes(query.toLowerCase()),
+    );
+    if (!match) return;
+    const x = (match as any).x as number;
+    const y = (match as any).y as number;
+    graphRef.current?.centerAt(x, y, 1000);
+    graphRef.current?.zoom(2.5, 1000);
+    setSelectedNode(match);
+  }
+
   function getLinkColor(link: unknown): string {
     if (!selectedNode) return '#374151';
     const l = link as { source: unknown; target: unknown };
@@ -127,6 +143,7 @@ export default function GraphPage() {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#111827' }}>
       <ForceGraph2D
+        ref={graphRef}
         graphData={graphData!}
         width={typeof window !== 'undefined' ? window.innerWidth : 800}
         height={typeof window !== 'undefined' ? window.innerHeight : 600}
@@ -148,6 +165,30 @@ export default function GraphPage() {
         onNodeClick={(node) => setSelectedNode(node as GraphNode)}
         onBackgroundClick={() => setSelectedNode(null)}
       />
+
+      <div className="fixed top-4 left-4">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleSearchKey}
+          placeholder="Search nodes… (Enter)"
+          className="w-56 rounded-lg bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none ring-1 ring-white/10 focus:ring-blue-500"
+        />
+      </div>
+
+      <div className="fixed bottom-4 left-4 rounded-lg bg-white/90 p-3 text-sm shadow backdrop-blur">
+        {([
+          { label: 'People',    color: NODE_COLORS.person   },
+          { label: 'Projects',  color: NODE_COLORS.project  },
+          { label: 'Decisions', color: NODE_COLORS.decision },
+        ] as const).map(({ label, color }) => (
+          <div key={label} className="flex items-center gap-2 py-0.5">
+            <span className="inline-block h-3 w-3 rounded-full flex-shrink-0" style={{ background: color }} />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
 
       {selectedNode && connectedByType && (
         <div className="fixed top-4 right-4 w-60 rounded-xl bg-gray-900 p-4 text-white shadow-lg ring-1 ring-white/10">
